@@ -1,11 +1,11 @@
+import sys, os
 import numpy as np
 from itertools import chain
 from sklearn.base import BaseEstimator, ClassifierMixin
 from types import SimpleNamespace
 from sklearn.metrics import accuracy_score
-from RS_GroundTruth.rs_dataset import RemoteSensingDataset  # あなたのrs_dataset.py
-from spatialcv.spatial_train_test_split import spatial_train_test_split, SpatialSplitConfig
-from .utils.spatial_expansion import upd_LUlabel # rs-sslをパッケージとして扱うため、utilsの先頭にドットを付けて相対指定する
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
     """
@@ -104,9 +104,12 @@ class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
 if __name__ == "__main__":
     from sklearn.svm import SVC
     from dataclasses import dataclass
-    from utils.spatial_expansion import upd_LUlabel
+    from .utils.spatial_expansion import upd_LUlabel # rs-sslをパッケージとして扱うため、utilsの先頭にドットを付けて相対指定する
+    from pprint import pprint
+    from RS_GroundTruth.rs_dataset import RemoteSensingDataset  # あなたのrs_dataset.py
+    from spatialcv.spatial_train_test_split import spatial_train_test_split, SpatialSplitConfig
 
-
+    pprint(sys.path[0])
     # データ読み込み
     ds = RemoteSensingDataset(remove_bad_bands=True)
     X, y = ds.load("Indianpines") # X.shape = (H, W, B), y.shape= (H, W)
@@ -116,6 +119,8 @@ if __name__ == "__main__":
 
     # --- train/test分割 ---
     split_random_state = 43
+    # テストサイズの指定
+    test_size, error_rate = 0.6, 0.1
     class SpatialSplitConfig:
         n_rows: int = 13                       # ブロック分割数(縦)
         n_cols: int = 13                       # ブロック分割数(横)
@@ -124,15 +129,12 @@ if __name__ == "__main__":
         background_label: int = 0              # 各土地被覆クラスで作成するなテストサンプル数の下限
         random_state: int = split_random_state       # 乱数シード
         auto_adjust_test_size: bool = True    # テストサイズを自動調整するか
-        min_search_test_ratio: float = None    # 自動探索モード時の下限
-        max_search_test_ratio: float = None    # 自動探索モード時の上限
+        min_search_test_ratio: float = test_size - error_rate    # 自動探索モード時の下限
+        max_search_test_ratio: float = test_size + error_rate    # 自動探索モード時の上限
         step: float = 0.05                     # 自動探索モード時の刻み幅
         max_iter: int = 100                    # ランダム試行回数
 
-    # テストサイズの指定
-    test_size ,error_rate = 0.6, 0.1
-    cfg = SpatialSplitConfig(min_search_test_ratio = test_size - error_rate,
-                             max_search_test_ratio = test_size + error_rate)
+    cfg = SpatialSplitConfig()
     X_train, X_test, y_train, y_test, train_mask, test_mask, best_ts = spatial_train_test_split(
         X = X, y = y, test_size = test_size, cfg = cfg
     )
