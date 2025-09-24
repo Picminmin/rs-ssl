@@ -103,11 +103,10 @@ class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
 
 if __name__ == "__main__":
     from sklearn.svm import SVC
-    from dataclasses import dataclass
     from .utils.spatial_expansion import upd_LUlabel # rs-sslをパッケージとして扱うため、utilsの先頭にドットを付けて相対指定する
     from pprint import pprint
     from RS_GroundTruth.rs_dataset import RemoteSensingDataset  # あなたのrs_dataset.py
-    from spatialcv.spatial_train_test_split import spatial_train_test_split, SpatialSplitConfig
+    from spatialcv.examples.transductive.spatial_train_test_split import spatial_train_test_split, SpatialSplitConfig
 
     pprint(sys.path[0])
     # データ読み込み
@@ -146,18 +145,24 @@ if __name__ == "__main__":
 
     L_index = train_index # ラベル付き = train_mask
     # U_indexは別途調整が必要である。本来は教師を除くすべてのインデックスをU_indexに指定する必要がある。
-    U_index = np.setdiff1d(np.arange(H * W), np.concatenate([train_index, test_index]))
+    # U_index = np.setdiff1d(np.arange(H * W), np.concatenate([train_index, test_index]))
+
+    # 教師を除くすべてのインデックスをU_indexに指定する
+    U_index = np.setdiff1d(np.arange(H * W), L_index)
 
     print(f"[INFO] 初期 L={len(L_index)}, U={len(U_index)}, Test={len(test_index)}")
 
     # --- モデル定義 ---
     base_clf = SVC(kernel = "rbf", probability = True, decision_function_shape = "ovr")
 
+    # 反復回数
+    max_iter = 50
     ssl_clf = SemiSupervisedClassifier(
         base_clf = base_clf,
-        mode= "hybrid", # "confidence" / "spatial" / "hybrid"
+        mode="spatial",
+        # mode= "hybrid", # "confidence" / "spatial" / "hybrid"
         conf_threshold = 0.9,
-        max_iter = 60,
+        max_iter = max_iter,
         random_state = 43
     )
 

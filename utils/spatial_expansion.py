@@ -45,8 +45,8 @@ def upd_LUlabel(
         pre_L (np.ndarray): ラベル付きデータのインデックス配列
         pre_U (np.ndarray): ラベルなしデータのインデックス配列
         y_pred (np.ndarray): ラベルなしデータに対する予測ラベル
-        expand_label (np.ndarray): 拡張されたラベルマップ (1次元 flatten)
-        ground_truth (np.ndarray): GTラベル (1次元 flatten)
+        expand_label (np.ndarray): 拡張されたラベルマップ 1D: 長さ H*W, 0は背景/未ラベル
+        ground_truth (np.ndarray): GTラベル 2D: 形状(H, W)を想定
         background_label (int, optional): 背景ラベル
         connectivity (int, optional): 4近傍 or 8近傍
 
@@ -56,40 +56,56 @@ def upd_LUlabel(
         upd_flag (bool): 更新が発生したか
         expand_label (np.ndarray): 更新後の拡張ラベルマップ
     """
-    height, width = ground_truth.shape
+
+    if ground_truth.ndim != 2:
+        raise ValueError("ground_truthは2D (H, W)を想定。")
+
+    H, W = ground_truth.shape
     remove_index = []
     upd_flag = False
 
-    # L の周囲にある U の候補を探索
-    candidate_neighbors = chain.from_iterable(
-        get_neighbors(idx, width, height, connectivity) for idx in pre_L
-    )
-    candidate_neighbors = np.unique([i for i in candidate_neighbors if i in pre_U])
+    # U を集合にしてmembershipを高速化
+    U_set = set(pre_U.tolist())
 
-    for u_idx in candidate_neighbors:
-        # u_idx の近傍にあるラベル分布を集計
-        neighbors = get_neighbors(u_idx, width, height, connectivity)
-        class_votes = np.zeros(ground_truth.max() + 1, dtype=int)
+    # L の8近傍にある U を候補化
+    cand = set()
+    for idx in pre_L:
+        for nb in get_neighbors(idx, W, H, connectivity):
+            if nb in U_set:
+                cand.add(nb)
 
-        for n_idx in neighbors:
-            if expand_label[n_idx] != background_label:
-                cls = expand_label[n_idx]
-                class_votes[cls] += 1
+    # 評価カウント用のクラス数(背景を含む)
+    n_classes = int(max(expand_label.max(), ground_truth.max())) + 1
 
-        # 投票があれば最頻クラスを割り当てる
-        if class_votes.sum() > 0:
-            best_class = np.argmax(class_votes[1:]) + 1 # 背景(0)を除外
-            # 同数票の処理
-            if np.sum(class_votes == class_votes[best_class]) == 1:
-                expand_label[u_idx] = best_class
-                remove_index.append(u_idx)
-                upd_flag = True
+    for u_idx in cand:
+        nbs = get_neighbors(u_idx, W, H, connectivity)
+        # 背景以外の既ラベルだけを見る
+        labels = [expand_label[n] for n in nbs if expand_label[n] != background_label]
+        if not labels:
+            continue
 
-        # L と U を更新
-        if remove_index:
-            upd_L = np.concatenate([pre_L, np.array(remove_index)])
-            upd_U = np.array([i for i in pre_U if i not in remove_index])
-        else:
-            upd_L, upd_U = pre_L, pre_U
+        votes = np.bincount(labels, minlength = n_classes)
+        votes[background_label] = 0 # 背景は無視
 
-        return upd_L, upd_U, upd_flag, expand_label
+        best = int(votes.argmax())
+        top = votes[best]
+        # 2番目との比較で「同数票かどうか」を判定
+        votes_wo_best = votes.copy()
+        votes_wo_best[best] = -1
+        second = votes_wo_best.max()
+
+        if top > 0 and top > second: # ← 同数票なし & 票が入っている
+            expand_label[u_idx] = best
+            remove_index.append(u_idx)
+            upd_flag = True
+
+    # --- ここで一括更新 (← 重要: for の外) ---
+    if remove_index:
+        remove_index = np.array(remove_index, dtype = int)
+        upd_L = np.concatenate([pre_L, remove_index])
+        # pre_U から remove_index を引く
+        upd_U = np.setdiff1d(pre_U, remove_index, assume_unique = False)
+    else:
+        upd_L, upd_U = pre_L, pre_U
+
+    return upd_L, upd_U, upd_flag, expand_label
