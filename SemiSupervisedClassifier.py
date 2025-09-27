@@ -64,7 +64,7 @@ class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
                 image_shape=image_shape,
                 save_path=save_path,
                 dataset_keyword=self.dataset_keyword,
-                title=f"Iteration {it+1}"
+                title=f"{self.dataset_keyword} iter_{it+1}"
             )
 
             # --- 予測 ---
