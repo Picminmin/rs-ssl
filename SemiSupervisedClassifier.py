@@ -154,7 +154,7 @@ if __name__ == "__main__":
     from pprint import pprint
     from RS_GroundTruth.rs_dataset import RemoteSensingDataset  # あなたのrs_dataset.py
     from spatialcv.examples.transductive.spatial_train_test_split import spatial_train_test_split, SpatialSplitConfig, visualize_train_test_with_counts_csv
-    from visualize_map.visualize import visualize_iteration_map, visualize_prediction_map
+    from visualize_map.visualize import visualize_train_test_split_map, visualize_iteration_map, visualize_prediction_map
 
 
     pprint(sys.path[0])
@@ -189,7 +189,15 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test, train_mask, test_mask, best_ts = spatial_train_test_split(
         X = X, y = y, test_size = test_size, cfg = cfg
     )
-
+    # --- 教師データとテストデータの空間的配置の可視化 ---
+    visualize_train_test_split_map(
+        y=y,
+        train_mask=train_mask,
+        test_mask=test_mask,
+        dataset_keyword=dataset_keyword,
+        save_dir="img",
+        title=f"Train/Test Spatial Split Visualization:{dataset_keyword}"
+    )
 
     # --- インデックス作成 ---
     train_index = np.where(train_mask.flatten())[0]
