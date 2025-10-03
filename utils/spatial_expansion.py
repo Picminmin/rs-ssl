@@ -39,7 +39,7 @@ def upd_LUlabel(
     connectivity: int = 8
 ):
     """
-    空間的隣接性に基づいて L, U を更新する。
+    空間的隣接性に基づいて L, U を更新する。ただし boundary_mask 上の画素は拡張しない。
 
     Args:
         pre_L (np.ndarray): ラベル付きデータのインデックス配列
@@ -78,6 +78,7 @@ def upd_LUlabel(
     n_classes = int(max(expand_label.max(), ground_truth.max())) + 1
 
     for u_idx in cand:
+
         nbs = get_neighbors(u_idx, W, H, connectivity)
         # 背景以外の既ラベルだけを見る
         labels = [expand_label[n] for n in nbs if expand_label[n] != background_label]

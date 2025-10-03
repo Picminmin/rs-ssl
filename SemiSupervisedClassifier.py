@@ -5,6 +5,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from types import SimpleNamespace
 from sklearn.metrics import accuracy_score
 from visualize_map.visualize import visualize_iteration_map, visualize_prediction_map
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
@@ -17,15 +18,17 @@ class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
     - mode="hybrid": 信頼度と空間的隣接性を組み合わせ
     """
 
-    def __init__(self, base_clf, mode="confidence",
+    def __init__(self, X, base_clf, mode="confidence",
                  conf_threshold=0.9, max_iter = 10,
-                 random_state = None, dataset_keyword=None):
+                 random_state = None, dataset_keyword=None, decimal_places: int = 4):
         self.base_clf = base_clf
         self.mode = mode
         self.conf_threshold = conf_threshold
         self.max_iter = max_iter
         self.random_state = random_state
         self.dataset_keyword = dataset_keyword
+
+
 
     def fit(self, L_index, U_index, X, y, image_shape, upd_LUlabel = None):
         """
@@ -55,7 +58,8 @@ class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
             self.base_clf.fit(X[L_index], expand_label[L_index])
 
             # --- 可視化 ---
-            save_path = os.path.join("img/iterations", f"iter_{it:02d}.png")
+            save_path = os.path.join("img/iterations",
+                                     f"{self.dataset_keyword}_iter_{it:02d}.png")
             visualize_iteration_map(
                 y=y,
                 expand_label=expand_label,
@@ -160,18 +164,31 @@ if __name__ == "__main__":
     pprint(sys.path[0])
     # データ読み込み
     ds = RemoteSensingDataset(remove_bad_bands=True)
-    print(f"[INFO] dataset keyword: {ds.available_data_keyword}")
+    # print(f"[INFO] dataset keyword: {ds.available_data_keyword}")
+
     dataset_keyword = "Indianpines"
+    # dataset_keyword = "Salinas"
+    # dataset_keyword = "SalinasA"
+    # dataset_keyword = "Pavia"
+    # dataset_keyword = "PaviaU"
     X, y = ds.load(dataset_keyword) # X.shape = (H, W, B), y.shape= (H, W)
     H, W, B = X.shape
     image_shape = H, W
     X_flat = X.reshape(-1, B)
     y_flat = y.flatten()
 
+    # ===========重要なパラメータ============
+
     # --- train/test分割 ---
     split_random_state = 43
+
     # テストサイズの指定
     test_size, error_rate = 0.6, 0.1
+
+    # 反復回数
+    max_iter = 10
+
+    # ======================================
     class SpatialSplitConfig:
         n_rows: int = 13                       # ブロック分割数(縦)
         n_cols: int = 13                       # ブロック分割数(横)
@@ -210,13 +227,10 @@ if __name__ == "__main__":
     # 教師を除くすべてのインデックスをU_indexに指定する
     U_index = np.setdiff1d(np.arange(H * W), L_index)
 
-    print(f"[INFO] 初期 L={len(L_index)}, U={len(U_index)}, Test={len(test_index)}")
 
     # --- モデル定義 ---
     base_clf = SVC(kernel = "rbf", probability = True, decision_function_shape = "ovr")
 
-    # 反復回数
-    max_iter = 3
     ssl_clf = SemiSupervisedClassifier(
         base_clf = base_clf,
         mode="spatial",
@@ -226,6 +240,8 @@ if __name__ == "__main__":
         random_state = 43,
         dataset_keyword=dataset_keyword
     )
+
+    print(f"[INFO] 初期 L={len(L_index)}, U={len(U_index)}, Test={len(test_index)}")
 
     # --- 学習 ---
     ssl_clf.fit(

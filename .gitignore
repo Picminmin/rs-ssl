@@ -1,0 +1,5 @@
+
+# 開発中のファイルは追跡から除外する
+dev_ssl.py
+detect_edges.py
+dev_updLUlabel.py
