@@ -18,9 +18,17 @@ class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
     - mode="hybrid": 信頼度と空間的隣接性を組み合わせ
     """
 
-    def __init__(self, X, base_clf, mode="confidence",
-                 conf_threshold=0.9, max_iter = 10,
-                 random_state = None, dataset_keyword=None, decimal_places: int = 4):
+    def __init__(
+        self,
+        X,
+        base_clf,
+        mode="confidence",
+        conf_threshold=0.9,
+        max_iter = 10,
+        random_state = None,
+        dataset_keyword=None,
+        decimal_places: int = 4
+    ):
         self.base_clf = base_clf
         self.mode = mode
         self.conf_threshold = conf_threshold
@@ -28,9 +36,15 @@ class SemiSupervisedClassifier(BaseEstimator, ClassifierMixin):
         self.random_state = random_state
         self.dataset_keyword = dataset_keyword
 
-
-
-    def fit(self, L_index, U_index, X, y, image_shape, upd_LUlabel = None):
+    def fit(
+        self,
+        L_index,
+        U_index,
+        X,
+        y,
+        image_shape,
+        upd_LUlabel = None
+    ):
         """
         Args:
             L_index (ndarray): ラベル付きデータのインデックス
