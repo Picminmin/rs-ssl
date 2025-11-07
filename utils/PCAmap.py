@@ -20,6 +20,7 @@ def pcamap(
         save_path (_type_): _description_
         pc_num (int, optional): _description_. Defaults to 1.
     """
+
     H, W, B = X.shape
     X_flat = X.reshape(-1, B)
     X_mean = np.mean(X_flat, axis=0)
@@ -50,5 +51,5 @@ if __name__ == '__main__':
         save_dir = "img",
         pc_num = 2,
         n_components = 20,
-        save_flag = False
+        save_flag = True
     )
