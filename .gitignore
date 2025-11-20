@@ -2,5 +2,6 @@
 # 開発中のファイルは追跡から除外する
 dev_ssl.py
 dev_ssl_v2.py
+dev_ssl_v3.py
 detect_edges.py
 dev_updLUlabel.py
