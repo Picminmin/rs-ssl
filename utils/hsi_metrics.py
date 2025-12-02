@@ -41,6 +41,12 @@ def compute_class_accuracy(y_pred, y_true, background_label = 0):
     return class_acc, AA
 
 def compute_kappa(y_pred, y_true, background_label = 0):
+    """
+    Q. Cohen's kappa は OA では見落とされやすいモデルの性能をどのように補えるのか。
+    A. 偶然一致の影響(class imbalance + classifier bias)を補正できる点である。
+    k = 1(完全一致), k = 0(偶然と同じ), k < 0(偶然より悪い)
+    pe: 「偶然に一致する確率」
+    """
     mask = (y_true != background_label)
     y_true = y_true[mask]
     y_pred = y_pred[mask]
@@ -68,6 +74,11 @@ def compute_kappa(y_pred, y_true, background_label = 0):
     return kappa
 
 def compute_mcc(y_pred, y_true, background_label = 0):
+    """
+    ・class imbalanceに強い
+    ・confusion matrix 全体を使う
+    ・「分類器が回帰的に使えない場合」でも安定
+    """
     mask = (y_true != background_label)
     y_true = y_true[mask]
     y_pred = y_pred[mask]
