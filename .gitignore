@@ -6,3 +6,6 @@ dev_ssl_v3.py
 dev_ssl_v4.py
 detect_edges.py
 dev_updLUlabel.py
+
+__pycache__/
+*.pyc
